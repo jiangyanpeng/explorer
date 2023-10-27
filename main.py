@@ -1,4 +1,4 @@
-from explorer.onnxexplorer import Onnxexplorer
+from explorer.explorer import Onnxexplorer
 from explorer.model import Model
 import numpy as np
 

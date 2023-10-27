@@ -88,7 +88,7 @@ def get_random_emoji(unicode_version=6):
 
 def get_panel_desc(version):
     p = f'{get_random_emoji()[0]} Author: Yanpeng\n' + \
-        f'{get_random_emoji()[0]} Github: https://github.com/jiangyanpeng, please star 🌟\n' + \
+        f'{get_random_emoji()[0]} Github: https://github.com/jiangyanpeng/explorer.git, please star 🌟\n' + \
         f'{get_random_emoji()[0]} Version: {version}\n' + \
         f'{get_random_emoji()[0]} Since: 2023.10 \n' + \
         f'{get_random_emoji()[0]} Promote: onnxexp glance -m a.onnx'
