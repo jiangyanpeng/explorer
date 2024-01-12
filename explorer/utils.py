@@ -2,7 +2,16 @@ import time
 import warnings
 
 
-class timer():
+class timer:
+    """
+    The timer that provides timecost function
+    To create a timer :
+    tm = timer()
+        tm.start()
+        .. code-block:: python
+        time_cost = tm.end()
+    """
+
     def __init__(self):
         self._startt = time.time()
 
@@ -14,8 +23,8 @@ class timer():
         return timens
 
 
-def tuple2str(t: tuple, splitch=','):
-    s = ''
+def tuple2str(t: tuple, splitch=","):
+    s = ""
     for i, v in enumerate(t):
         s += str(v)
         if i != len(t) - 1:
@@ -23,29 +32,23 @@ def tuple2str(t: tuple, splitch=','):
     return s
 
 
-class Registry():
+class Registry:
     """
     The registry that provides name -> object mapping, to support third-party
     users' custom modules.
 
     To create a registry (e.g. a backbone registry):
-
     .. code-block:: python
-
         BACKBONE_REGISTRY = Registry('BACKBONE')
 
     To register an object:
-
     .. code-block:: python
-
         @BACKBONE_REGISTRY.register()
         class MyBackbone():
             ...
 
     Or:
-
     .. code-block:: python
-
         BACKBONE_REGISTRY.register(MyBackbone)
     """
 
@@ -54,17 +57,17 @@ class Registry():
         self._obj_map = {}
 
     def __setitem__(self, name, obj):
-        # assert (name not in self._obj_map), (f"An object named '{name}' was already registered "
-        #                                      f"in '{self._name}' registry!")
+        # no action other than issuing a warning for
+        # an already registered object
         if name in self._obj_map:
             warnings.warn(
-                f"An object named '{name}' was already registered "
-                f"in '{self._name}' registry!")
+                f"'{name}' object was already registered in '{self._name}' registry"
+            )
         self._obj_map[name] = obj
 
     def register(self, obj=None):
         if obj is None:
-            # used as a decorator
+            # decorator acts as an object to be registered
             def deco(func_or_class):
                 name = func_or_class.__name__
                 self.__setitem__(name, func_or_class)
@@ -72,20 +75,18 @@ class Registry():
 
             return deco
 
-        # used as a function call
         name = obj.__name__
         self.__setitem__(name, obj)
 
     def get(self, name):
         ret = self._obj_map.get(name)
-        # if ret is None:
-        # raise KeyError(f"No object named '{name}' found in '{self._name}' registry!")
+        if ret is None:
+            raise KeyError(f"'{name}' object can't found in '{self._name}' registry")
         return ret
 
     def __getitem__(self, item):
         if self._obj_map.__contains__(item) is False:
-            raise KeyError(
-                f"No object named '{item}' found in '{self._name}' registry!")
+            raise KeyError(f"'{item}' object can't found in '{self._name}' registry")
         return self._obj_map[item]
 
     def __contains__(self, name):
@@ -98,11 +99,18 @@ class Registry():
         return self._obj_map.keys()
 
 
-NODEPROFILER_REGISTRY = Registry('nodeprofiler')
-NODE_REGISTRY = Registry('NODE')
+NODEPROFILER_REGISTRY = Registry("nodeprofiler")
+NODE_REGISTRY = Registry("NODE")
 
 
-class Global():
+class Global:
+    """
+    The Global class that provides global container;
+    To use Global container:
+        .. code-block:: python
+        GLOBAL['tensor_map'] = A
+    """
+
     def __init__(self, name):
         self._name = name
         self._obj_map = {}
@@ -125,7 +133,7 @@ class Global():
         return self._obj_map.keys()
 
 
-GLOBAL = Global('Shared')
+GLOBAL = Global("Shared")
 
 
 def volume(shape: []):

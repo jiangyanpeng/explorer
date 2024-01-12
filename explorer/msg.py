@@ -1,8 +1,6 @@
 # This example shows how to display content in columns.
 # The data is pulled from https://randomuser.me
 
-import json
-from urllib.request import urlopen
 from itertools import accumulate
 from bisect import bisect
 from random import randrange
@@ -10,7 +8,6 @@ from unicodedata import name as unicode_name
 
 
 from rich.console import Console
-from rich.columns import Columns
 from rich.panel import Panel
 
 
@@ -87,16 +84,16 @@ def get_random_emoji(unicode_version=6):
 
 
 def get_panel_desc(version):
-    p = f'{get_random_emoji()[0]} Author: Yanpeng\n' + \
-        f'{get_random_emoji()[0]} Github: https://github.com/jiangyanpeng, please star 🌟\n' + \
-        f'{get_random_emoji()[0]} Version: {version}\n' + \
-        f'{get_random_emoji()[0]} Since: 2023.10 \n' + \
-        f'{get_random_emoji()[0]} Promote: onnxexp glance -m a.onnx'
+    p = f"{get_random_emoji()[0]} Author: Yanpeng\n" + \
+        f"{get_random_emoji()[0]} Github: https://github.com/jiangyanpeng/explorer.git, please star 🌟\n" + \
+        f"{get_random_emoji()[0]} Version: {version}\n" + \
+        f"{get_random_emoji()[0]} Since: 2023.10 \n" + \
+        f"{get_random_emoji()[0]} Promote: explorer glance -m a.onnx"
     return p
 
 
 def print_welcome_msg(version):
     console = Console()
     p = Panel(get_panel_desc(version),
-            title=f'{get_random_emoji()[0]} Welcome to onnxexp! {get_random_emoji()[0]}', highlight=True, expand=True)
+            title=f'{get_random_emoji()[0]} Welcome to explorer! {get_random_emoji()[0]}', highlight=True, expand=True)
     console.print(p, width=90)

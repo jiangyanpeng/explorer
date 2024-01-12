@@ -1,6 +1,7 @@
 import onnx
 import numpy as np
 import logging
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -23,12 +24,11 @@ def parser_initializer(initializer):
     logging.info(f"initializer with type: {onnx_datatype_to_npType(dtype)} ")
 
     # print tenth buffer
-    weights = np.frombuffer(initializer.raw_data,
-                            dtype=onnx_datatype_to_npType(dtype))
+    weights = np.frombuffer(initializer.raw_data, dtype=onnx_datatype_to_npType(dtype))
     logging.info(f"initializer first 10 wights:{weights[:10]}")
 
 
-def parser_tensor(tensor, use='normal'):
+def parser_tensor(tensor, use="normal"):
     name = tensor.name
     logging.info(f"{use} tensor name: {name}")
 
@@ -79,13 +79,13 @@ def parser_info(onnx_model):
 def parser_inputs(onnx_graph):
     inputs = onnx_graph.input
     for input in inputs:
-        parser_tensor(input, 'input')
+        parser_tensor(input, "input")
 
 
 def parser_outputs(onnx_graph):
     outputs = onnx_graph.output
     for output in outputs:
-        parser_tensor(output, 'output')
+        parser_tensor(output, "output")
 
 
 def parser_graph_initializers(onnx_graph):
@@ -102,7 +102,7 @@ def parser_graph_nodes(onnx_graph):
 
 
 def onnx_parser():
-    model_path = 'models/M208_26e_body.onnx'
+    model_path = "models/M208_26e_body.onnx"
     model = onnx.load(model_path)
 
     # 0.
@@ -126,25 +126,26 @@ def onnx_parser():
 # if __name__ == '__main__':
 #     onnx_parser()
 
-if __name__ == '__main__':
- 
-    model_path = 'models/M208_26e_body.onnx'
+if __name__ == "__main__":
+    model_path = "models/M208_26e_body.onnx"
     model = onnx.load(model_path)
- 
+
     nodes = model.graph.node
     nodnum = len(nodes)  # 205
     for nid in range(nodnum):
-        if (nodes[nid].output[0] == 'stride_32'):
-            print('Found stride_32: index = ', nid)
+        if nodes[nid].output[0] == "stride_32":
+            print("Found stride_32: index = ", nid)
         else:
-            print('input: ', nodes[nid].input, ' output: ', nodes[nid].output)
- 
+            print("input: ", nodes[nid].input, " output: ", nodes[nid].output)
+
     inits = model.graph.initializer
     ininum = len(inits)  # 124
- 
+
     for iid in range(ininum):
         el = inits[iid]
-        print('name:', el.name, ' dtype:', el.data_type, ' dim:', el.dims)  # el.raw_data for weights and biases
- 
+        print(
+            "name:", el.name, " dtype:", el.data_type, " dim:", el.dims
+        )  # el.raw_data for weights and biases
+
     print(model.graph.output)  # display all the output nodes
     # print(model.graph.input)
