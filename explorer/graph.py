@@ -22,30 +22,32 @@ VERSION = "0.8.4"
 
 def shape_of_initializer(initial):
     shape = []
-    # for nb in tensor.shape.dim
     for nb in initial.dims:
         shape.append(nb)
     return shape
 
 
 SHAPE_TENSORS = {
-    'Reshape': ('1of2',),
-    'Resize': ('2of3', '3of4', '1of2'),
-    'Upsample': ('2of3', '3of4', '1of2'),
-    'Expand': ('1of2',),
-    'Slice': ('1,2of3', '1,2,3of4', '1,2,3,4of5'),
-    'ConstantOfShape': ('0of1',),
-    'Tile': ('1of2',),
-    'Range': ('0,1,2of3',),
-    'OneHot': ('1of3',),
-    'TopK': ('1of2',),
-    'Pad': ('1of2', '1of3',),
-    'NonMaxSuppression': ('2of5',),
-    'Split': ('1of2',),
-    'Unsqueeze': ('1of2',),
-    'Squeeze': ('1of2',),
-    'ReduceSum': ('1of2',),
-    'ReduceMean': ('1of2',)
+    "Reshape": ("1of2",),
+    "Resize": ("2of3", "3of4", "1of2"),
+    "Upsample": ("2of3", "3of4", "1of2"),
+    "Expand": ("1of2",),
+    "Slice": ("1,2of3", "1,2,3of4", "1,2,3,4of5"),
+    "ConstantOfShape": ("0of1",),
+    "Tile": ("1of2",),
+    "Range": ("0,1,2of3",),
+    "OneHot": ("1of3",),
+    "TopK": ("1of2",),
+    "Pad": (
+        "1of2",
+        "1of3",
+    ),
+    "NonMaxSuppression": ("2of5",),
+    "Split": ("1of2",),
+    "Unsqueeze": ("1of2",),
+    "Squeeze": ("1of2",),
+    "ReduceSum": ("1of2",),
+    "ReduceMean": ("1of2",),
 }
 
 
@@ -55,17 +57,17 @@ def contains_shape_tensor(n):
     if n.op_type in nodeset:
         tensor_descs = SHAPE_TENSORS[n.op_type]
         for desc in tensor_descs:
-            strs = desc.split('of')
+            strs = desc.split("of")
             indice = strs[0]
             count = int(strs[1])
             if len(n.input) == count:
-                indistr = indice.split(',')
+                indistr = indice.split(",")
                 for istr in indistr:
                     shape_tensors.append(n.input[int(istr)])
     return shape_tensors
 
 
-class ValueExpr():
+class ValueExpr:
     def __init__(self, srcrange: [], dstrange: []):
         self.alpha = 1
         self.beta = 0
@@ -86,13 +88,11 @@ class ValueExpr():
         if srclen <= dstlen:
             self.factor = 0
             self.alpha = round(dstlen / srclen)
-            self.beta = round(dstrange[lastidx] -
-                              srcrange[lastidx] * self.alpha)
+            self.beta = round(dstrange[lastidx] - srcrange[lastidx] * self.alpha)
         else:
             self.factor = 1
             self.alpha = round(srclen / dstlen)
-            self.beta = round(dstrange[lastidx] -
-                              srcrange[lastidx] / self.alpha)
+            self.beta = round(dstrange[lastidx] - srcrange[lastidx] / self.alpha)
 
         test = [self.__call__(x) for x in srcrange]
         diff = 0
@@ -115,7 +115,7 @@ class ValueExpr():
             return math.floor(x)
 
 
-class ShapeEngine():
+class ShapeEngine:
     def __init__(self, input_desc):
         self.input_desc = input_desc
         self.variables = {}
@@ -141,7 +141,7 @@ class ShapeEngine():
 
     def update_tensor_desc(self, tensor, axis, vkey):
         desc = self.tensor_desc[tensor]
-        assert (not isinstance(desc[axis], int))
+        assert not isinstance(desc[axis], int)
         desc[axis] = vkey
 
     def get_tensor_desc(self, tensor):
@@ -171,8 +171,15 @@ class ShapeEngine():
         return tmp_input
 
 
-class Graph():
-    def __init__(self, g: onnx.ModelProto, model_name: str, constant_folding: bool = True, noderename: bool = False, verbose=False):
+class Graph:
+    def __init__(
+        self,
+        g: onnx.ModelProto,
+        model_name: str,
+        constant_folding: bool = True,
+        noderename: bool = False,
+        verbose=False,
+    ):
         self.verbose = verbose
         self.nodemap = {}
         self.tensormap = {}
@@ -200,14 +207,15 @@ class Graph():
 
     def __update_nodes_tensors__(self, constant_folding):
         from .utils import timer
+
         tm = timer()
         if constant_folding:
             rmlist = []
             for key in self.nodemap:
                 if self.nodemap[key].constant:
                     rmlist.append(key)
-            self.log(f'GraphProto Nodes Count:{len(self.rawgraph.node)}')
-            self.log(f'Contant folding {rmlist[:3]}... {len(rmlist)} Nodes')
+            self.log(f"GraphProto Nodes Count:{len(self.rawgraph.node)}")
+            self.log(f"Contant folding {rmlist[:3]}... {len(rmlist)} Nodes")
             for key in rmlist:
                 self.nodemap.pop(key)
 
@@ -261,11 +269,11 @@ class Graph():
                     if tensor not in self.output:
                         self.output.append(tensor)
         self.__update_consumer_producer__()
-        self.log(f'Update Nodes Tensors  Time Elapsed {tm.stop()}')
+        self.log(f"Update Nodes Tensors  Time Elapsed {tm.stop()}")
 
     def __is_node_constant__(self, node):
         constant_node = True
-        if node.op_type in ['DequantizeLinear']:
+        if node.op_type in ["DequantizeLinear"]:
             return False
         for tname in node.input:
             if self.tensormap[tname].type == DYNAMIC_TENSOR:
@@ -275,10 +283,11 @@ class Graph():
 
     def __constant_search__(self, constant_folding):
         from .utils import timer
+
         tm = timer()
         for name in self.nodemap.keys():
             node = self.nodemap[name]
-            if hasattr(node, 'constant'):
+            if hasattr(node, "constant"):
                 continue
             constant_node = self.__is_node_constant__(node)
             node.constant = constant_node
@@ -291,9 +300,10 @@ class Graph():
                         itensors = []
                         for input in this_node.input:
                             itensors.append(self.tensormap[input])
-                            if self.tensormap[input].np is None and input != '':
+                            if self.tensormap[input].np is None and input != "":
                                 warnings.warn(
-                                    f'Tensor {input} has shape only, {name} may has wrong value infer result')
+                                    f"Tensor {input} has shape only, {name} may has wrong value infer result"
+                                )
                         otensors = []
                         for output in this_node.output:
                             otensors.append(self.tensormap[output])
@@ -311,7 +321,7 @@ class Graph():
                                 if self.__is_node_constant__(cnode):
                                     cnode.constant = True
                                     search_nodes.append(consumer)
-        self.log(f'Constant Search Time Elapsed {tm.stop()}')
+        self.log(f"Constant Search Time Elapsed {tm.stop()}")
 
     def __update_consumer_producer__(self):
         self.producedby = {}
@@ -342,7 +352,7 @@ class Graph():
         for node in g.node:
             newnode = create_node(node)
             if noderename or len(newnode.name) == 0:
-                newnode.name = newnode.op_type + '_' + str(ncount)
+                newnode.name = newnode.op_type + "_" + str(ncount)
             ncount += 1
             for tensor in node.input:
                 if tensor in self.producedby:
@@ -360,7 +370,7 @@ class Graph():
 
             self.nodemap[newnode.name] = newnode
 
-        self.log(f'Node Init Time Elapsed {tm.stop()}')
+        self.log(f"Node Init Time Elapsed {tm.stop()}")
 
         tm.start()
         # init initials first
@@ -381,7 +391,7 @@ class Graph():
             if valinfo.name not in self.tensormap.keys():
                 tensor = Tensor(valinfo)
                 self.tensormap[valinfo.name] = tensor
-        self.log(f'Tensor Init Time Elapsed {tm.stop()}')
+        self.log(f"Tensor Init Time Elapsed {tm.stop()}")
 
         tm.start()
         # dynamic tensor info
@@ -395,14 +405,13 @@ class Graph():
                     self.tensormap[tensor] = Tensor(tensor)
                 if tensor in self.consumedby:
                     for consumer in self.consumedby[tensor]:
-                        self.nodemap[node.name].nextnodes.append(
-                            self.nodemap[consumer])
-        self.log(f'IO Tensor Init Time Elapsed {tm.stop()}')
+                        self.nodemap[node.name].nextnodes.append(self.nodemap[consumer])
+        self.log(f"IO Tensor Init Time Elapsed {tm.stop()}")
 
         self.sparse_model = False
         for key in self.tensormap.keys():
             tensor = self.tensormap[key]
-            if tensor.sparsity is not None and tensor.sparsity['ratio'] > 0.4:
+            if tensor.sparsity is not None and tensor.sparsity["ratio"] > 0.4:
                 self.sparse_model = True
                 break
 
@@ -422,13 +431,21 @@ class Graph():
                     for nname in searchnodes:
                         node = self.nodemap[nname]
                         node.shape_calc = True
-                        if node.op_type == 'Shape':
+                        if node.op_type == "Shape":
                             continue
                         for input in node.input:
-                            if input not in self.initials and input in self.producedby.keys():
+                            if (
+                                input not in self.initials
+                                and input in self.producedby.keys()
+                            ):
                                 producers = self.producedby[input]
                                 nextnodes.extend(
-                                    [p for p in producers if self.nodemap[p].shape_calc == False])
+                                    [
+                                        p
+                                        for p in producers
+                                        if self.nodemap[p].shape_calc == False
+                                    ]
+                                )
                     searchnodes = nextnodes
 
     def __get_subnodes_byio__(self, inputs: [], outputs: []):
@@ -469,24 +486,24 @@ class Graph():
 
     def add_initial(self, name, data):
         from .tensor import create_initial_Tensor
+
         self.initials.append(name)
         if isinstance(data, np.ndarray):
             self.tensormap[name] = create_initial_Tensor(name, data)
         else:
-            raise NotImplementedError('unsupported data type')
+            raise NotImplementedError("unsupported data type")
 
     def get_subgraph(self, inputs: [], outputs: []):
         graph_level0, graph_level1, graph_level2 = self.__get_subnodes_byio__(
-            inputs, outputs)
+            inputs, outputs
+        )
 
         graph_level0 = Graph(self.get_onnxgraph_by_nodenames(graph_level0))
         graph_level1 = Graph(self.get_onnxgraph_by_nodenames(graph_level1))
         graph_level2 = Graph(self.get_onnxgraph_by_nodenames(graph_level2))
 
-        group_outputs = [graph_level0.output,
-                         graph_level1.output, graph_level2.output]
-        group_inputs = [graph_level0.input,
-                        graph_level1.input, graph_level2.input]
+        group_outputs = [graph_level0.output, graph_level1.output, graph_level2.output]
+        group_inputs = [graph_level0.input, graph_level1.input, graph_level2.input]
 
         extern_outputs = []
         extern_inputs = []
@@ -506,11 +523,13 @@ class Graph():
 
         if len(extern_inputs) != len(self.input):
             warnings.warn(
-                "subgraph input and output tensors can not reverse to raw graph.")
+                "subgraph input and output tensors can not reverse to raw graph."
+            )
 
         if len(extern_outputs) != len(self.output):
             warnings.warn(
-                "subgraph input and output tensors can not reverse to raw graph.")
+                "subgraph input and output tensors can not reverse to raw graph."
+            )
 
         return graph_level0, graph_level1, graph_level2
 
@@ -560,25 +579,30 @@ class Graph():
             else:
                 for pro in self.producedby[indtensor]:
                     pro_node = self.nodemap[pro]
-                    assert (len(pro_node.output) == 1)
+                    assert len(pro_node.output) == 1
                     pro_node.output[0] = node.output[0]
         self.nodemap.pop(nodename)
 
-    def fuse_subgraph_node_names(self, nodes: [str], nodeop: str, nodename: str, keep_attr=True):
+    def fuse_subgraph_node_names(
+        self, nodes: [str], nodeop: str, nodename: str, keep_attr=True
+    ):
         _inputs, _outputs = self.get_iotensors(nodes, remove_initials=False)
-        newnode = onnx.helper.make_node(
-            nodeop, _inputs, _outputs, name=nodename)
+        newnode = onnx.helper.make_node(nodeop, _inputs, _outputs, name=nodename)
         count = 0
         if keep_attr:
             for node in nodes:
                 for attribute in self.nodemap[node].proto.attribute:
                     attr = onnx.helper.make_attribute(
-                        self.nodemap[node].proto.op_type +
-                        str(count) + '_' + attribute.name,
-                        get_attribute_data(attribute))
+                        self.nodemap[node].proto.op_type
+                        + str(count)
+                        + "_"
+                        + attribute.name,
+                        get_attribute_data(attribute),
+                    )
                     newnode.attribute.append(attr)
                 count += 1
         from .node import Node
+
         for name in nodes:
             self.remove_node(name)
         newnode = Node(newnode)
@@ -598,10 +622,11 @@ class Graph():
         _inputs, _outputs = self.get_iotensors(nodes, remove_initials=False)
         mainnode = self.nodemap[nodes[0]]
         newnode = onnx.helper.make_node(
-            mainnode.op_type, _inputs, _outputs, name=mainnode.name)
+            mainnode.op_type, _inputs, _outputs, name=mainnode.name
+        )
         count = 0
         for attr in mainnode.proto.attribute:
-            if attr.name == 'postop_count':
+            if attr.name == "postop_count":
                 count = onnx.helper.get_attribute_value(attr)
             else:
                 newnode.attribute.append(attr)
@@ -615,17 +640,17 @@ class Graph():
                 if nname == mainnode.name:
                     continue
                 pnode = self.nodemap[nname]
-                attr = onnx.helper.make_attribute(
-                    'postop_' + str(count), pnode.op_type)
+                attr = onnx.helper.make_attribute("postop_" + str(count), pnode.op_type)
                 newnode.attribute.append(attr)
                 for attribute in pnode.proto.attribute:
                     attr = onnx.helper.make_attribute(
-                        'postop_' + str(count) + '_' + attribute.name,
-                        get_attribute_data(attribute))
+                        "postop_" + str(count) + "_" + attribute.name,
+                        get_attribute_data(attribute),
+                    )
                     newnode.attribute.append(attr)
                 count += 1
 
-        attr = onnx.helper.make_attribute('postop_count', count)
+        attr = onnx.helper.make_attribute("postop_count", count)
         newnode.attribute.append(attr)
 
         for name in nodes:
@@ -660,27 +685,48 @@ class Graph():
             _inputs0, _outputs0 = self.get_iotensors(nodenames)
             graph_level0 = self.topsort_nodes(nodenames, _inputs0)
             subgraph = self.make_graph_onnx(
-                graph_level0, 'subgraph', _inputs0, _outputs0)
+                graph_level0, "subgraph", _inputs0, _outputs0
+            )
             return subgraph
         return None
 
-    def save_model(self, f: str, shape_only: bool = False, no_shape: bool = False, rawmodel: onnx.ModelProto = None):
+    def save_model(
+        self,
+        f: str,
+        shape_only: bool = False,
+        no_shape: bool = False,
+        rawmodel: onnx.ModelProto = None,
+    ):
         if len(self.nodemap.keys()) == 0:
-            warnings.warn(f'Empty graph {f} to save')
+            warnings.warn(f"Empty graph {f} to save")
             return
-        graph = self.make_graph_onnx(self.nodemap.keys(), 'graph', self.input, self.output,
-                                     with_initializer=not shape_only, with_shape_info=not no_shape)
+        graph = self.make_graph_onnx(
+            self.nodemap.keys(),
+            "graph",
+            self.input,
+            self.output,
+            with_initializer=not shape_only,
+            with_shape_info=not no_shape,
+        )
         if graph is not None and f is not None:
             attr = {}
-            attr['producer_name'] = 'onnx_tool'
-            attr['producer_version'] = 'v' + VERSION
+            attr["producer_name"] = "onnx_tool"
+            attr["producer_version"] = "v" + VERSION
             model = onnx.helper.make_model(graph, **attr)
             if rawmodel is not None:
                 model.ir_version = rawmodel.ir_version
                 model.opset_import[0].version = rawmodel.opset_import[0].version
             onnx.save_model(model, f)
 
-    def make_graph_onnx(self, nodenames, gname, inputnames, outputnames, with_initializer=True, with_shape_info=True):
+    def make_graph_onnx(
+        self,
+        nodenames,
+        gname,
+        inputnames,
+        outputnames,
+        with_initializer=True,
+        with_shape_info=True,
+    ):
         nodes = []
         for name in nodenames:
             nodes.append(self.nodemap[name].make_nodeproto())
@@ -697,8 +743,7 @@ class Graph():
                 if proto is not None:
                     inputs.append(proto)
             else:
-                inputs.append(
-                    onnx.helper.make_tensor_value_info(name, 1, None))
+                inputs.append(onnx.helper.make_tensor_value_info(name, 1, None))
         for name in outputnames:
             if name in self.tensormap:
                 proto = self.tensormap[name].make_value_proto(make_dummy=True)
@@ -721,8 +766,14 @@ class Graph():
                     if vinfo is None:
                         continue
                     value_infos.append(vinfo)
-        graph = onnx.helper.make_graph(nodes=nodes, name=gname, inputs=inputs, outputs=outputs, initializer=initializer,
-                                       value_info=value_infos)
+        graph = onnx.helper.make_graph(
+            nodes=nodes,
+            name=gname,
+            inputs=inputs,
+            outputs=outputs,
+            initializer=initializer,
+            value_info=value_infos,
+        )
         return graph
 
     def topsort_nodes(self, node_names, input_names):
@@ -820,6 +871,7 @@ class Graph():
     def get_dynamic_tensors(self):
         dtensors = {}
         import copy
+
         for key in self.dynamics:
             dtensors[key] = copy.deepcopy(self.tensormap[key])
         return dtensors
@@ -841,9 +893,11 @@ class Graph():
         in_valid, tname = self.check_inputs()
         if not in_valid:
             raise ValueError(
-                f"The input tensor {tname}'s shape {self.tensormap[tname].shape2str()} is not valid, Please set it to a valid shape.")
+                f"The input tensor {tname}'s shape {self.tensormap[tname].shape2str()} is not valid, Please set it to a valid shape."
+            )
         self.shapeinfer_optime_map = {}
         from .utils import timer
+
         tm = timer()
         for key in self.nodemap.keys():
             tm.start()
@@ -913,7 +967,7 @@ class Graph():
                 if i == a:
                     shape_desc.append(i)
                 else:
-                    shape_desc.append('')
+                    shape_desc.append("")
             shapeengine.add_tensor_desc(key, shape_desc)
 
         vcount = 0
@@ -930,7 +984,9 @@ class Graph():
                 shapes_range.append(self.get_dynamic_tensors())
 
             shapeengine.update_variable(key, input_range[key][0])
-            srcrange = [minv, ] + vranges
+            srcrange = [
+                minv,
+            ] + vranges
             dstranges = [srcrange]
             tensor_range_map = {}
 
@@ -948,8 +1004,11 @@ class Graph():
             for vkey in mintensormap.keys():
                 if vkey in input_desc.keys():
                     continue
-                shapes = [mintensormap[vkey].shape, shapes_range[0]
-                          [vkey].shape, shapes_range[1][vkey].shape]
+                shapes = [
+                    mintensormap[vkey].shape,
+                    shapes_range[0][vkey].shape,
+                    shapes_range[1][vkey].shape,
+                ]
                 for i in range(len(shapes[0])):
                     if shapes[0][i] != shapes[1][i] or shapes[0][i] != shapes[2][i]:
                         newrange = [val[i] for val in shapes]
@@ -973,13 +1032,12 @@ class Graph():
                             else:
                                 # TODO multiple src variables comparison
                                 srckey = srcvalkey[0]
-                                expr = ValueExpr(
-                                    tensor_range_map[srckey], newrange)
-                                err = expr.error(
-                                    tensor_range_map[srckey], newrange)
+                                expr = ValueExpr(tensor_range_map[srckey], newrange)
+                                err = expr.error(tensor_range_map[srckey], newrange)
                             if err > 0:
                                 warnings.warn(
-                                    f'src key {srckey} dst key {vidx} error:{err}')
+                                    f"src key {srckey} dst key {vidx} error:{err}"
+                                )
 
                             shapeengine.add_expr(str(vidx), srckey, expr)
                             tensor_range_map[str(vidx)] = newrange
@@ -1016,7 +1074,7 @@ class Graph():
                             tensor_in_mem.remove(name)
         for output in self.output:
             if output not in tensor_in_mem:
-                warnings.warn(f'tensor list is wrong, {output} is missing!')
+                warnings.warn(f"tensor list is wrong, {output} is missing!")
         # print(tensor_mem_per_node)
         compress_mem = {}
         mem_tags = []
@@ -1034,8 +1092,12 @@ class Graph():
                     if i < len(mem_tags) - 1 and mem_tags[i + 1] == "":
                         nextmerge = True
                     if premerge and nextmerge:
-                        newblock = [mem_block[i - 1][0], mem_block[i + 1][0] + mem_block[i + 1][1]
-                                    - mem_block[i - 1][0]]
+                        newblock = [
+                            mem_block[i - 1][0],
+                            mem_block[i + 1][0]
+                            + mem_block[i + 1][1]
+                            - mem_block[i - 1][0],
+                        ]
                         mem_tags.pop(i)
                         mem_tags.pop(i)
                         mem_block.pop(i)
@@ -1043,15 +1105,19 @@ class Graph():
                         mem_tags[i - 1] = ""
                         mem_block[i - 1] = newblock
                     elif premerge:
-                        newblock = [mem_block[i - 1][0], mem_block[i][0] + mem_block[i][1]
-                                    - mem_block[i - 1][0]]
+                        newblock = [
+                            mem_block[i - 1][0],
+                            mem_block[i][0] + mem_block[i][1] - mem_block[i - 1][0],
+                        ]
                         mem_tags.pop(i)
                         mem_block.pop(i)
                         mem_tags[i - 1] = ""
                         mem_block[i - 1] = newblock
                     elif nextmerge:
-                        newblock = [mem_block[i][0], mem_block[i + 1][0] + mem_block[i + 1][1]
-                                    - mem_block[i][0]]
+                        newblock = [
+                            mem_block[i][0],
+                            mem_block[i + 1][0] + mem_block[i + 1][1] - mem_block[i][0],
+                        ]
                         mem_tags.pop(i)
                         mem_block.pop(i)
                         mem_tags[i] = ""
@@ -1063,8 +1129,7 @@ class Graph():
             for tname in nodetensors:
                 t_ = self.tensormap[tname]
                 size_ = t_.get_memsize()
-                size_ = int((size_ + size_padding - 1) //
-                            size_padding * size_padding)
+                size_ = int((size_ + size_padding - 1) // size_padding * size_padding)
                 if tname in mem_tags:
                     continue
                 block_found = False
@@ -1073,8 +1138,7 @@ class Graph():
                         if mem_block[i][1] >= size_:
                             remain_size = mem_block[i][1] - size_
                             if remain_size > 1024 * 1024:
-                                remain_block = [mem_block[i]
-                                                [0] + size_, remain_size]
+                                remain_block = [mem_block[i][0] + size_, remain_size]
                                 mem_tags[i] = tname
                                 mem_block[i][1] = size_
                                 mem_tags.insert(i + 1, "")
@@ -1092,7 +1156,8 @@ class Graph():
                         mem_tags.append(tname)
                         if lastidx >= 0:
                             mem_block.append(
-                                [mem_block[lastidx][0] + mem_block[lastidx][1], size_])
+                                [mem_block[lastidx][0] + mem_block[lastidx][1], size_]
+                            )
                         else:
                             mem_block.append([0, size_])
 
@@ -1130,12 +1195,15 @@ class Graph():
                         break
             if maxmem > compress_size:
                 warnings.warn(
-                    f'Wrong compress total memory size:{compress_size}. larger size detected:{maxmem}')
+                    f"Wrong compress total memory size:{compress_size}. larger size detected:{maxmem}"
+                )
             if overlap:
-                if laptensor[0] != '' and laptensor[
-                        1] != '':  # some chaos models use this empty name as an empty tensor name
+                if (
+                    laptensor[0] != "" and laptensor[1] != ""
+                ):  # some chaos models use this empty name as an empty tensor name
                     warnings.warn(
-                        f'Memory overlap detected!{laptensor[0]} v.s. {laptensor[1]}')
+                        f"Memory overlap detected!{laptensor[0]} v.s. {laptensor[1]}"
+                    )
 
         raw_memsize = 0
         for tname in self.dynamics:
@@ -1143,10 +1211,9 @@ class Graph():
                 continue
             raw_memsize += self.tensormap[tname].get_memsize()
 
-        self.log(
-            f"Raw memory size (without parameter memory): {raw_memsize:,} bytes")
+        self.log(f"Raw memory size (without parameter memory): {raw_memsize:,} bytes")
         self.log(f"Compressed memory size: {compress_size:,} bytes")
-        self.log(f'Comression ratio: {compress_size / raw_memsize * 100:.3f}%')
+        self.log(f"Comression ratio: {compress_size / raw_memsize * 100:.3f}%")
         return compress_mem, compress_size
 
     def get_compute_graph(self):
@@ -1184,11 +1251,10 @@ class Graph():
                                 searchnodes.append(pnodename)
                 continue
             nodes.append(node.name)
-        self.log(
-            f'Total Nodes:{len(cg.nodemap)} Removed Shape Nodes:{len(rmnodes)}')
+        self.log(f"Total Nodes:{len(cg.nodemap)} Removed Shape Nodes:{len(rmnodes)}")
         for key in rmnodes:
             cg.remove_node(key)
-        self.log(f'Compute Graph Nodes:{len(cg.nodemap)}')
+        self.log(f"Compute Graph Nodes:{len(cg.nodemap)}")
 
         cg.dynamics = []
         cg.dynamics.extend(cg.input)
@@ -1203,8 +1269,7 @@ class Graph():
     def profile(self):
         self.valid_profile = False
         if not self.valid_shape:
-            warnings.warn(
-                'Please perform a valid shape_infer() before profile().')
+            warnings.warn("Please perform a valid shape_infer() before profile().")
             return
         params_flag_map = {}
         for key in self.initials:
@@ -1219,7 +1284,7 @@ class Graph():
             _params = 0
             _memory = 0
             max_sparsity = 0
-            block_sparsity = {'blocksize': (1, 1), 'blockratio': 0, 'ratio': 0}
+            block_sparsity = {"blocksize": (1, 1), "blockratio": 0, "ratio": 0}
             for input in node.input:
                 tensor = self.tensormap[input]
                 itensors.append(tensor)
@@ -1227,16 +1292,18 @@ class Graph():
                     if params_flag_map[input] == 0:
                         elesize = volume(self.tensormap[input].get_shape())
                         _params += elesize
-                        _memory += elesize * \
-                            self.tensormap[input].get_elementsize()
+                        _memory += elesize * self.tensormap[input].get_elementsize()
                     params_flag_map[input] += 1
-                if tensor.sparsity is not None and tensor.sparsity['ratio'] > max_sparsity:
-                    max_sparsity = tensor.sparsity['ratio']
+                if (
+                    tensor.sparsity is not None
+                    and tensor.sparsity["ratio"] > max_sparsity
+                ):
+                    max_sparsity = tensor.sparsity["ratio"]
                     block_sparsity = tensor.sparsity
             otensors = []
             for output in node.output:
                 otensors.append(self.tensormap[output])
-                if node.op_type == 'Constant':
+                if node.op_type == "Constant":
                     # Constant's output tensors are already counted as weight tensors
                     continue
                 _memory += self.tensormap[output].get_memsize()
@@ -1263,19 +1330,19 @@ class Graph():
 
         self.valid_profile = True
 
-    def print_node_map(self, f: str = None, metric='MACs', exclude_ops=None):
+    def print_node_map(self, f: str = None, metric="MACs", exclude_ops=None):
         if not self.valid_profile:
-            warnings.warn(
-                'Please perform a valid profile() before print_node_map().')
+            warnings.warn("Please perform a valid profile() before print_node_map().")
             return
         from tabulate import tabulate
-        assert (metric in ['MACs', 'FLOPs'])
-        print_sparse_table = self.sparse_model
-        saveformat = 'txt'
-        splitch = 'x'
 
-        if f is not None and '.csv' in f:
-            saveformat = 'csv'
+        assert metric in ["MACs", "FLOPs"]
+        print_sparse_table = self.sparse_model
+        saveformat = "txt"
+        splitch = "x"
+
+        if f is not None and ".csv" in f:
+            saveformat = "csv"
             csvformat = True
         else:
             csvformat = False
@@ -1297,27 +1364,27 @@ class Graph():
 
         if shared_size > 1024:
             print()
-            print('*' * 64)
-            print(f'Please note that Weight Tensors Sharing is detected:')
+            print("*" * 64)
+            print(f"Please note that Weight Tensors Sharing is detected:")
             for key in self.tensormap.keys():
                 if key in self.initials:
                     if key in self.consumedby.keys() and len(self.consumedby[key]) > 1:
-                        print(f'Tensor:{key} ')
-                        print('Shared by: ')
+                        print(f"Tensor:{key} ")
+                        print("Shared by: ")
                         for node in self.consumedby[key]:
-                            print('           ', node)
+                            print("           ", node)
                         print()
-            print('*' * 64)
+            print("*" * 64)
 
         factor = 1
-        if metric == 'FLOPs':
+        if metric == "FLOPs":
             factor = 2
 
         def num2str(num, csv=False):
             if csv:
-                return '{}'.format(num)
+                return "{}".format(num)
             else:
-                return '{:,}'.format(num)
+                return "{:,}".format(num)
 
         params += 1e-18
         forward_macs += 1e-18
@@ -1329,141 +1396,144 @@ class Graph():
             row = [key, self.nodemap[key].op_type]
             if print_sparse_table:
                 sparsity = node.sparsity
-                row.append(tuple2str(sparsity['blocksize'], splitch))
-                row.append('{:.2%}'.format(sparsity['blockratio']))
-                row.append('{:.2%}'.format(sparsity['ratio']))
+                row.append(tuple2str(sparsity["blocksize"], splitch))
+                row.append("{:.2%}".format(sparsity["blockratio"]))
+                row.append("{:.2%}".format(sparsity["ratio"]))
             row.append(num2str(int(node.macs[0]) * factor, csvformat))
-            row.append('{:.2%}'.format(node.macs[0] / forward_macs))
+            row.append("{:.2%}".format(node.macs[0] / forward_macs))
             if backward_valid:
                 row.append(num2str(int(node.macs[1]) * factor, csvformat))
-                row.append('{:.2%}'.format(node.macs[1] / backward_macs))
+                row.append("{:.2%}".format(node.macs[1] / backward_macs))
             row.append(num2str(int(node.memory), csvformat))
-            row.append('{:.2%}'.format(node.memory / memory))
+            row.append("{:.2%}".format(node.memory / memory))
             row.append(num2str(int(node.params), csvformat))
-            row.append('{:.2%}'.format(node.params / params))
+            row.append("{:.2%}".format(node.params / params))
             row.append(tuple2str(node.inshape, splitch))
             row.append(tuple2str(node.outshape, splitch))
 
             ptable.append(row)
-        row = ['Total', '_']
+        row = ["Total", "_"]
         if print_sparse_table:
-            row.append('_')
-            row.append('_')
-            row.append('_')
+            row.append("_")
+            row.append("_")
+            row.append("_")
         row.append(num2str(int(forward_macs * factor), csvformat))
-        row.append('100%')
+        row.append("100%")
         if backward_valid:
             row.append(num2str(int(backward_macs * factor), csvformat))
-            row.append('100%')
+            row.append("100%")
         row.append(num2str(int(memory), csvformat))
-        row.append('100%')
+        row.append("100%")
         row.append(num2str(int(params), csvformat))
-        row.append('100%')
-        row.append('_')
-        row.append('_')
+        row.append("100%")
+        row.append("_")
+        row.append("_")
 
         ptable.append(row)
-        header = ['Name', 'Type']
+        header = ["Name", "Type"]
         if print_sparse_table:
-            header.append('Sparse Pattern')
-            header.append('Sparse Block Ratio')
-            header.append('Sparse Ratio')
-        header.extend(
-            ['Forward_' + metric, 'FPercent'])
+            header.append("Sparse Pattern")
+            header.append("Sparse Block Ratio")
+            header.append("Sparse Ratio")
+        header.extend(["Forward_" + metric, "FPercent"])
         if backward_valid:
-            header.extend(
-                ['Backward_' + metric, 'BPercent'])
+            header.extend(["Backward_" + metric, "BPercent"])
         header.extend(
-            ['Memory', 'MPercent', 'Params',
-             'PPercent', 'InShape',
-             'OutShape'])
+            ["Memory", "MPercent", "Params", "PPercent", "InShape", "OutShape"]
+        )
 
         if f is None:
             print(tabulate(ptable, headers=header))
         else:
-            fp = open(f, 'w')
-            if saveformat == 'csv':
-                headerstr = ''
+            fp = open(f, "w")
+            if saveformat == "csv":
+                headerstr = ""
                 for i, item in enumerate(header):
                     headerstr += item
                     if i < len(header) - 1:
-                        headerstr += ','
-                headerstr += '\n'
+                        headerstr += ","
+                headerstr += "\n"
                 fp.write(headerstr)
                 for row in ptable:
-                    str = ''
+                    str = ""
                     for i, ele in enumerate(row):
                         str += ele
                         if i != len(row) - 1:
-                            str += ','
-                    str += '\n'
+                            str += ","
+                    str += "\n"
                     fp.write(str)
             else:
                 fp.write(tabulate(ptable, headers=header))
             fp.close()
 
-    def msg_console(self, metric='MACs'):
+    def msg_console(self, metric="MACs"):
         all_ops = get_all_used_op_types(self.proto)
-        opi_vd = ''
+        opi_vd = ""
         for opi in self.proto.opset_import:
             opi_vd += str(opi.version)
             opi_vd += opi.domain
-            opi_vd += ', '
+            opi_vd += ", "
         # 获取模型的输入和输出的信息
-        inp_specs, oup_specs = get_input_and_output_shapes(
-            self.proto)
+        inp_specs, oup_specs = get_input_and_output_shapes(self.proto)
         inp_specs = {k: (v[0], v[1]) for k, v in inp_specs.items()}
         oup_specs = {k: (v[0], v[1]) for k, v in oup_specs.items()}
         input_shape = str()
         for k, v in inp_specs.items():
-            input_shape = input_shape + \
-                '({:<5}:{:<16}:{}) '.format(k, str(v[0]), v[1])
+            input_shape = input_shape + "({:<5}:{:<16}:{}) ".format(k, str(v[0]), v[1])
         output_shape = str()
         for k, v in oup_specs.items():
-            output_shape = output_shape + \
-                '({:<5}:{:<16}:{}) '.format(k, str(v[0]), v[1])
+            output_shape = output_shape + "({:<5}:{:<16}:{}) ".format(
+                k, str(v[0]), v[1]
+            )
 
-        summary_str = f'IR_Version:   {self.proto.ir_version}\n' + \
-            f'Op_Version:   {opi_vd}\n' + \
-            f'Model_Name:   {self.model_name}\n' + \
-            f'Input_Shape:  {input_shape}\n' + \
-            f'Output_Shape: {output_shape}\n' + \
-            f'Doc: {self.proto.doc_string}\n' + \
-            f'Producer_Name: {self.proto.producer_name}\n' + \
-            f"All_Ops: {', '.join(all_ops.keys())}"
+        summary_str = (
+            f"IR_Version:   {self.proto.ir_version}\n"
+            + f"Op_Version:   {opi_vd}\n"
+            + f"Model_Name:   {self.model_name}\n"
+            + f"Input_Shape:  {input_shape}\n"
+            + f"Output_Shape: {output_shape}\n"
+            + f"Doc: {self.proto.doc_string}\n"
+            + f"Producer_Name: {self.proto.producer_name}\n"
+            + f"All_Ops: {', '.join(all_ops.keys())}"
+        )
 
         console = Console()
-        p = Panel(summary_str,
-                  title=f'[green]{self.model_name} Summary', highlight=False)
+        p = Panel(
+            summary_str, title=f"[green]{self.model_name} Summary", highlight=False
+        )
         console.print(p, width=130)
 
         if not self.valid_profile:
-            warnings.warn(
-                'Please perform a valid profile() before print_node_map().')
+            warnings.warn("Please perform a valid profile() before print_node_map().")
             return
-        if not metric in ['MACs', 'FLOPs']:
+        if not metric in ["MACs", "FLOPs"]:
             warnings.warn(
-                f'Please input correct metric, {metric} not in MACs or FLOPs.')
+                f"Please input correct metric, {metric} not in MACs or FLOPs."
+            )
             return
 
         # print table
-        table = Table(title=f'[green]{self.model_name} Detail',
-                      caption='Table generated by explorer', expand=True,
-                      header_style='bold magenta',
-                      row_styles=["none", "none"],
-                      pad_edge=True,
-                      box=box.ROUNDED,
-                      )
-        table.add_column('Name', justify='center')
-        table.add_column('Type', justify='center')
-        table.add_column('MACs',)
-        table.add_column('MACPercent', justify='center')
-        table.add_column('Memory')
-        table.add_column('MemPercent', justify='center')
-        table.add_column('Params')
-        table.add_column('ParamPercent', justify='center')
-        table.add_column('InShape')
-        table.add_column('OutShape')
+        table = Table(
+            title=f"[green]{self.model_name} Detail",
+            caption="Table generated by explorer",
+            expand=True,
+            header_style="bold magenta",
+            row_styles=["none", "none"],
+            pad_edge=True,
+            box=box.ROUNDED,
+        )
+        table.add_column("Name", justify="center")
+        table.add_column("Type", justify="center")
+        table.add_column(
+            "MACs",
+        )
+        table.add_column("MACPercent", justify="center")
+        table.add_column("Memory")
+        table.add_column("MemPercent", justify="center")
+        table.add_column("Params")
+        table.add_column("ParamPercent", justify="center")
+        table.add_column("InShape")
+        table.add_column("OutShape")
 
         params = int(self.params)
         memory = int(self.memory)
@@ -1472,21 +1542,33 @@ class Graph():
         params += 1e-18
         forward_macs += 1e-18
         backward_macs += 1e-18
-        factor = 1.
-        if metric == 'FLOPs':
-            factor = 2.
+        factor = 1.0
+        if metric == "FLOPs":
+            factor = 2.0
         for key in self.nodemap.keys():
             node = self.nodemap[key]
-            table.add_row(key,
-                          node.op_type,
-                          '{:,}'.format(int(node.macs[0] * factor)),
-                          '{:.2%}'.format(node.macs[0] / forward_macs),
-                          '{:,}'.format(int(node.memory)),
-                          '{:.2%}'.format(node.memory / memory),
-                          '{:,}'.format(int(node.params)),
-                          '{:.2%}'.format(node.params / params),
-                          tuple2str(node.inshape),
-                          tuple2str(node.outshape))
-        table.add_row('Total', '_', str(int(forward_macs * factor)), '100%',
-                      str(int(memory)), '100%', str(int(params)), '100%', '_', '_')
+            table.add_row(
+                key,
+                node.op_type,
+                "{:,}".format(int(node.macs[0] * factor)),
+                "{:.2%}".format(node.macs[0] / forward_macs),
+                "{:,}".format(int(node.memory)),
+                "{:.2%}".format(node.memory / memory),
+                "{:,}".format(int(node.params)),
+                "{:.2%}".format(node.params / params),
+                tuple2str(node.inshape),
+                tuple2str(node.outshape),
+            )
+        table.add_row(
+            "Total",
+            "_",
+            str(int(forward_macs * factor)),
+            "100%",
+            str(int(memory)),
+            "100%",
+            str(int(params)),
+            "100%",
+            "_",
+            "_",
+        )
         console.print(table, width=130)

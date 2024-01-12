@@ -18,9 +18,9 @@ def shape_of_tensor(tensor):
     shape = []
     # for nb in tensor.shape.dim
     for nb in tensor.type.tensor_type.shape.dim:
-        if nb.HasField('dim_value'):
+        if nb.HasField("dim_value"):
             shape.append(nb.dim_value)
-        if nb.HasField('dim_param'):
+        if nb.HasField("dim_param"):
             shape.append(nb.dim_param)
     return shape
 
@@ -88,7 +88,7 @@ def npdtype2onnxdtype(npdtype):
 def tensorproto2ndarray(initial):
     shape = shape_of_initializer(initial)
     ndtype = onnxdtype2npdtype(initial.data_type)
-    if initial.raw_data == b'':
+    if initial.raw_data == b"":
         arr = np.zeros(shape, ndtype).reshape((-1))
         if ndtype == np.float32:
             arr = np.fromiter(initial.float_data, dtype=ndtype)
@@ -156,7 +156,12 @@ def volume_tensor(t):
 def narray_calc_sparsity(arr):
     if len(arr.shape) != 2 and len(arr.shape) != 4:
         return 0
-    if arr.dtype == np.float32 or arr.dtype == np.float64 or arr.dtype == np.int32 or arr.dtype == np.int8:
+    if (
+        arr.dtype == np.float32
+        or arr.dtype == np.float64
+        or arr.dtype == np.int32
+        or arr.dtype == np.int8
+    ):
         flag = arr == 0
         return flag.sum() / arr.size
     if arr.dtype == np.uint8:
@@ -190,20 +195,22 @@ def is_valid_ndarray(x):
 
 
 def graph_addoutputs(graph: onnx.GraphProto, outnames: [str]) -> onnx.GraphProto:
-    tensor_map = GLOBAL['tensor_map']
+    tensor_map = GLOBAL["tensor_map"]
     for name in outnames:
         if tensor_map is not None and name in tensor_map.keys():
             newout = onnx.helper.make_tensor_value_info(
-                name, onnx.TensorProto.FLOAT, tensor_map[name].shape)
+                name, onnx.TensorProto.FLOAT, tensor_map[name].shape
+            )
         else:
             newout = onnx.helper.make_tensor_value_info(
-                name, onnx.TensorProto.FLOAT, ())
+                name, onnx.TensorProto.FLOAT, ()
+            )
         graph.output.append(newout)
     return graph
 
 
 def graph_set_inputs(graph: onnx.GraphProto, dynamic_tensors: {}) -> onnx.GraphProto:
-    tensor_map = GLOBAL['tensor_map']
+    tensor_map = GLOBAL["tensor_map"]
     for input in graph.input:
         if dynamic_tensors.keys().__contains__(input.name):
             tensor_map[input.name] = dynamic_tensors[input.name]
@@ -214,23 +221,23 @@ def graph_set_inputs(graph: onnx.GraphProto, dynamic_tensors: {}) -> onnx.GraphP
 
 
 def update_static_tensors(graph: onnx.GraphProto):
-    tensor_map = GLOBAL['tensor_map']
-    params_map = GLOBAL['params_map']
+    tensor_map = GLOBAL["tensor_map"]
+    params_map = GLOBAL["params_map"]
     for initial in graph.initializer:
         arr = tensorproto2ndarray(initial)
         tensor_map.update({initial.name: arr})
 
     for node in graph.node:
-        if node.op_type == 'Constant':
+        if node.op_type == "Constant":
             for att in node.attribute:
-                if att.name == 'value':
+                if att.name == "value":
                     tensor_map[node.output[0]] = get_attribute_data(att)
 
     totalparams = 0
     for key in tensor_map.keys():
         params_map[key] = volume(tensor_map[key].shape)
         totalparams += params_map[key]
-    GLOBAL['totalparams'] = totalparams
+    GLOBAL["totalparams"] = totalparams
 
 
 def np_dtype2bytes(ndtype):
@@ -292,14 +299,21 @@ def search_sparse_blocksize(arr, ratio, deltar_thres=0.1):
         # check square
         if prevalid1 and prevalid0:
             rearr = arr.reshape(
-                arr.shape[0] // validsize, validsize, arr.shape[1] // validsize, validsize)
+                arr.shape[0] // validsize,
+                validsize,
+                arr.shape[1] // validsize,
+                validsize,
+            )
             flag = narray_zero_flag(rearr)
             arrsum = np.sum(flag, axis=(1, -1))
             ratios = (arrsum == (validsize * validsize)).sum() / arrsum.size
             if ratios > ratio - deltar_thres:
                 return (validsize, validsize), ratios
 
-        return (validsize if prevalid0 else 1, validsize if prevalid1 else 1), validratio
+        return (
+            validsize if prevalid0 else 1,
+            validsize if prevalid1 else 1,
+        ), validratio
 
     if len(arr.shape) == 4:  # conv2d
         initsize = 2
@@ -345,8 +359,13 @@ def search_sparse_blocksize(arr, ratio, deltar_thres=0.1):
             prevalid1 = valid1
         # check square
         if validsize > 1 and prevalid1 and prevalid0:
-            rearr = arr.reshape(arr.shape[0] // validsize, validsize, arr.shape[1] // validsize, validsize,
-                                *arr.shape[2:])
+            rearr = arr.reshape(
+                arr.shape[0] // validsize,
+                validsize,
+                arr.shape[1] // validsize,
+                validsize,
+                *arr.shape[2:]
+            )
             flag = narray_zero_flag(rearr)
             arrsum = np.sum(flag, axis=(1, 3))
             ratios = (arrsum == (validsize * validsize)).sum() / arrsum.size
@@ -363,15 +382,16 @@ STATIC_TENSOR = 0
 DYNAMIC_TENSOR = 1
 
 
-class Tensor():
+class Tensor:
     def __init__(self, t):
         from .node import Node
+
         if isinstance(t, str):
             self.name = t
             self.proto = None
             self.shape = []
             self.np = None
-            self.type = DYNAMIC_TENSOR if t != '' else STATIC_TENSOR
+            self.type = DYNAMIC_TENSOR if t != "" else STATIC_TENSOR
             self.dtype = np.float32
         elif isinstance(t, onnx.ValueInfoProto):
             self.name = t.name
@@ -411,14 +431,14 @@ class Tensor():
         self.dtype = dtype
 
     def shape2str(self):
-        st = '['
+        st = "["
         for val in self.shape:
             if isinstance(val, str):
-                st += val + ','
+                st += val + ","
             else:
-                st += str(val) + ','
+                st += str(val) + ","
         st = st[:-1]
-        st += ']'
+        st += "]"
         return st
 
     def get_shape(self):
@@ -462,9 +482,13 @@ class Tensor():
             ratio = narray_calc_sparsity(self.np)
             if ratio is not None and ratio > thres_ratio:
                 blocksize, blockratio = search_sparse_blocksize(
-                    self.np, ratio, deltar_thres=0.1)
-        self.sparsity = {'blocksize': blocksize,
-                         'blockratio': blockratio, 'ratio': ratio}
+                    self.np, ratio, deltar_thres=0.1
+                )
+        self.sparsity = {
+            "blocksize": blocksize,
+            "blockratio": blockratio,
+            "ratio": ratio,
+        }
 
     def make_value_proto(self, make_dummy=False):
         shape = self.get_shape()
@@ -474,7 +498,7 @@ class Tensor():
             dtype = npdtype2onnxdtype(self.dtype)
         else:
             dtype = npdtype2onnxdtype(self.np.dtype)
-        if self.name == '':
+        if self.name == "":
             return None
         # shape = [int(i) for i in shape]
         vinf = onnx.helper.make_tensor_value_info(self.name, dtype, shape)
@@ -484,8 +508,9 @@ class Tensor():
         if self.np is None:
             return None
         if len(self.np.shape) == 0:
-            tproto = onnx.helper.make_tensor(self.name, npdtype2onnxdtype(
-                self.np.dtype), [], [self.np.item()])
+            tproto = onnx.helper.make_tensor(
+                self.name, npdtype2onnxdtype(self.np.dtype), [], [self.np.item()]
+            )
         else:
             if self.np.dtype not in [np.float32, np.int32]:
                 raw = True
@@ -493,8 +518,13 @@ class Tensor():
             else:
                 raw = False
                 data = self.np.flatten()
-            tproto = onnx.helper.make_tensor(self.name, npdtype2onnxdtype(
-                self.np.dtype), self.np.shape, data, raw=raw)
+            tproto = onnx.helper.make_tensor(
+                self.name,
+                npdtype2onnxdtype(self.np.dtype),
+                self.np.shape,
+                data,
+                raw=raw,
+            )
         return tproto
 
 

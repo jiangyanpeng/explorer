@@ -88,20 +88,21 @@ def get_random_emoji(unicode_version=6):
     return (emoji, emoji_codepoint, emoji_name)
 
 
-
-
-
 def get_panel_desc(version):
-    p = f'{get_random_emoji()[0]} Author: Lucas Jin\n' + \
-        f'{get_random_emoji()[0]} Github: https://github.com/jinfagang/modelexplorer, please star 🌟\n' + \
+    p = f'{get_random_emoji()[0]} Author: Yanpeng Jiang\n' + \
+        f'{get_random_emoji()[0]} Github: https://github.com/jiangyanpeng/explorer, please star 🌟\n' + \
         f'{get_random_emoji()[0]} Version: {version}\n' + \
-        f'{get_random_emoji()[0]} Since: 2021.10 \n' + \
-        f'{get_random_emoji()[0]} Promote: onnxexp glance -m a.onnx'
+        f'{get_random_emoji()[0]} Since: 2023.10 \n' + \
+        f'{get_random_emoji()[0]} Promote: explorer glance -m a.onnx'
     return p
 
 
 def print_welcome_msg(version):
     console = Console()
     p = Panel(get_panel_desc(version),
-            title=f'{get_random_emoji()[0]} Welcome to onnxexp! {get_random_emoji()[0]}', highlight=True)
+            title=f'{get_random_emoji()[0]} Welcome to explorer! {get_random_emoji()[0]}', highlight=True)
     console.print(p)
+
+
+if __name__ == "__main__":
+    print_welcome_msg("1.0.0")
