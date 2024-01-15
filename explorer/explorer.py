@@ -253,11 +253,15 @@ class OnnxExplorer(object):
             a = onnx.helper.printable_graph(self.model_proto.graph)
             print(a)
 
-    def check_trt_engine(self, trt_engine_f):
-        from alfred.deploy.tensorrt.common import check_engine, load_engine_from_local
+    # def check_trt_engine(self, trt_engine_f):
+    #     from alfred.deploy.tensorrt.common import check_engine, load_engine_from_local
 
-        if os.path.exists(trt_engine_f):
-            engine = load_engine_from_local(trt_engine_f)
-            check_engine(engine, do_print=True)
-        else:
-            print("can not found file: {}".format(trt_engine_f))
+    #     if os.path.exists(trt_engine_f):
+    #         engine = load_engine_from_local(trt_engine_f)
+    #         check_engine(engine, do_print=True)
+    #     else:
+    #         print("can not found file: {}".format(trt_engine_f))
+
+
+def main():
+    OnnxExplorer()
